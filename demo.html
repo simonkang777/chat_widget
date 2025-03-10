@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Bubble Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Bubble Demo</h1>
+        <p>This page demonstrates the chat bubble widget. Look for the chat bubble in the bottom right corner of the screen.</p>
+        <p>Click on the bubble to open the chat window and try sending a message.</p>
+    </div>
+
+    <!-- Include the chat bubble script -->
+    <script src="chat-bubble.js"></script>
+    
+    <!-- Initialize the chat bubble widget -->
+    <script>
+        // Initialize with default options
+        const chatBubble = new ChatBubbleWidget({
+            // Customize the webhook URL to your endpoint
+            // webhookUrl: 'your-webhook-url',
+            // position: 'left', // 'right' or 'left'
+            // bubbleColor: '#4a86e8',
+            // textColor: '#ffffff'
+        });
+
+        // Add debugging information
+        console.log('Chat bubble initialized with session ID:', chatBubble.sessionId);
+        console.log('Using webhook URL:', chatBubble.options.webhookUrl);
+    </script>
+    
+    <!-- Add debugging panel -->
+    <div id="debug-panel" style="position: fixed; top: 10px; right: 10px; background: #f0f0f0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); max-width: 400px; overflow: auto; max-height: 80vh;">
+        <h3>Debug Info</h3>
+        <p>Session ID: <span id="session-id"></span></p>
+        <p>Webhook URL: <span id="webhook-url"></span></p>
+        <p>Last Request Status: <span id="request-status">None</span></p>
+        <div>
+            <button id="test-webhook" style="padding: 5px 10px; background: #4a86e8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;">Test Webhook</button>
+            <button id="toggle-response" style="padding: 5px 10px; background: #4a86e8; color: white; border: none; border-radius: 4px; cursor: pointer;">Show Response</button>
+        </div>
+        <div id="response-container" style="margin-top: 10px; display: none;">
+            <h4>Last Response</h4>
+            <pre id="response-data" style="background: #fff; padding: 8px; border-radius: 4px; max-height: 200px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all;">No response yet</pre>
+        </div>
+    </div>
+
+    <script>
+        // Update debug panel with chat bubble info
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('session-id').textContent = chatBubble.sessionId;
+            document.getElementById('webhook-url').textContent = chatBubble.options.webhookUrl;
+            
+            // Add toggle response button functionality
+            document.getElementById('toggle-response').addEventListener('click', () => {
+                const responseContainer = document.getElementById('response-container');
+                if (responseContainer.style.display === 'none') {
+                    responseContainer.style.display = 'block';
+                    document.getElementById('toggle-response').textContent = 'Hide Response';
+                } else {
+                    responseContainer.style.display = 'none';
+                    document.getElementById('toggle-response').textContent = 'Show Response';
+                }
+            });
+            
+            // Add test webhook button functionality
+            document.getElementById('test-webhook').addEventListener('click', async () => {
+                const statusEl = document.getElementById('request-status');
+                const responseDataEl = document.getElementById('response-data');
+                statusEl.textContent = 'Sending...';
+                
+                try {
+                    // Create a more detailed test payload
+                    const payload = {
+                        message: 'Test message from debug panel',
+                        sessionId: chatBubble.sessionId,
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent,
+                        pageUrl: window.location.href
+                    };
+                    
+                    console.log('Sending test webhook request:', payload);
+                    
+                    const response = await fetch(chatBubble.options.webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', [...response.headers.entries()]);
+                    
+                    // Get raw response text first
+                    const responseText = await response.text();
+                    console.log('Raw response text:', responseText);
+                    
+                    // Try to parse as JSON
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                        console.log('Parsed response data:', data);
+                        responseDataEl.textContent = JSON.stringify(data, null, 2);
+                    } catch (parseError) {
+                        console.warn('Response is not valid JSON:', parseError);
+                        responseDataEl.textContent = responseText;
+                    }
+                    
+                    // Show response container
+                    document.getElementById('response-container').style.display = 'block';
+                    document.getElementById('toggle-response').textContent = 'Hide Response';
+                    
+                    // Update status
+                    if (!response.ok) {
+                        statusEl.textContent = `Error: HTTP ${response.status}`;
+                        statusEl.style.color = 'red';
+                    } else {
+                        statusEl.textContent = `Success: ${response.status}`;
+                        statusEl.style.color = 'green';
+                    }
+                } catch (error) {
+                    console.error('Error testing webhook:', error);
+                    statusEl.textContent = `Error: ${error.message}`;
+                    statusEl.style.color = 'red';
+                    responseDataEl.textContent = `Error: ${error.message}`;
+                    document.getElementById('response-container').style.display = 'block';
+                    document.getElementById('toggle-response').textContent = 'Hide Response';
+                }
+            });
+            
+            // Intercept and log all fetch requests to the webhook URL
+            const originalFetch = window.fetch;
+            window.fetch = function(url, options) {
+                const result = originalFetch.apply(this, arguments);
+                
+                // Check if this is a request to our webhook
+                if (url === chatBubble.options.webhookUrl) {
+                    console.log('Intercepted fetch to webhook:', { url, options });
+                    
+                    // Process the response
+                    result.then(async response => {
+                        console.log('Intercepted webhook response:', response);
+                        
+                        // Clone the response so we can read it without consuming it
+                        const clonedResponse = response.clone();
+                        try {
+                            const responseText = await clonedResponse.text();
+                            console.log('Intercepted webhook response text:', responseText);
+                            
+                            // Update the debug panel
+                            const responseDataEl = document.getElementById('response-data');
+                            try {
+                                const data = JSON.parse(responseText);
+                                responseDataEl.textContent = JSON.stringify(data, null, 2);
+                            } catch (e) {
+                                responseDataEl.textContent = responseText;
+                            }
+                        } catch (error) {
+                            console.error('Error reading intercepted response:', error);
+                        }
+                    }).catch(error => {
+                        console.error('Error in intercepted fetch:', error);
+                    });
+                }
+                
+                return result;
+            };
+        });
+    </script>
+</body>
+</html>
