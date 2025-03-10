@@ -100,7 +100,8 @@
                         sessionId: chatBubble.sessionId,
                         timestamp: new Date().toISOString(),
                         userAgent: navigator.userAgent,
-                        pageUrl: window.location.href
+                        pageUrl: window.location.href,
+                        source: 'website' // Adding fixed source value as requested
                     };
                     
                     console.log('Sending test webhook request:', payload);

@@ -258,7 +258,8 @@ class ChatBubbleWidget {
             sessionId: this.sessionId,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
-            pageUrl: window.location.href
+            pageUrl: window.location.href,
+            source: 'website' // Adding fixed source value as requested
         };
         
         console.log('Sending message to webhook:', {
