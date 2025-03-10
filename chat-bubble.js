@@ -16,7 +16,7 @@ class ChatBubbleWidget {
             assistantName: 'Vivian', // Name of the assistant
             assistantTitle: 'Watch Advisor', // Title/role of the assistant
             assistantAvatarUrl: 'https://i.pravatar.cc/150?img=45', // Default avatar URL (woman)
-            welcomeMessage: 'Nos envie uma mensagem e responderemos em poucos minutos!', // Welcome message
+            welcomeMessage: 'Estou a sua disposição!', // Welcome message
             ...options
         };
         
@@ -51,7 +51,10 @@ class ChatBubbleWidget {
         this.container.className = 'chat-bubble-widget';
         this.container.style.position = 'fixed';
         this.container.style.bottom = '20px';
+        
+        // Fixed positioning for the container
         this.container.style[this.options.position] = '20px';
+        
         this.container.style.zIndex = '9999';
         
         // Create the chat bubble button
@@ -81,8 +84,30 @@ class ChatBubbleWidget {
         this.chatWindow.style.position = 'absolute';
         this.chatWindow.style.bottom = '70px';
         this.chatWindow.style[this.options.position] = '0';
-        this.chatWindow.style.width = '350px';
-        this.chatWindow.style.height = '500px';
+        
+        // Basic responsive dimensions for the chat window
+        // Use a function to set appropriate width based on screen size
+        const setChatWindowSize = () => {
+            // For very narrow screens, make the chat window smaller
+            // but ensure it's never less than 280px (unless screen is smaller)
+            const screenWidth = window.innerWidth;
+            if (screenWidth < 350) {
+                // On very narrow screens, make it fit with small margins
+                const newWidth = Math.max(280, screenWidth - 20);
+                this.chatWindow.style.width = `${newWidth}px`;
+            } else {
+                // Default size for normal screens
+                this.chatWindow.style.width = '350px';
+            }
+            this.chatWindow.style.height = '500px';
+        };
+        
+        // Set initial size
+        setChatWindowSize();
+        
+        // Update on window resize
+        window.addEventListener('resize', setChatWindowSize);
+        
         this.chatWindow.style.backgroundColor = '#ffffff';
         this.chatWindow.style.borderRadius = '16px';
         this.chatWindow.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
@@ -168,6 +193,9 @@ class ChatBubbleWidget {
         inputArea.style.backgroundColor = '#ffffff';
         inputArea.style.position = 'relative';
         
+        // Fixed padding for input area
+        inputArea.style.padding = '15px';
+        
         // Create message input wrapper
         const inputWrapper = document.createElement('div');
         inputWrapper.style.display = 'flex';
@@ -182,12 +210,22 @@ class ChatBubbleWidget {
         this.messageInput = document.createElement('input');
         this.messageInput.className = 'chat-input';
         this.messageInput.type = 'text';
-        this.messageInput.placeholder = 'Write a message';
+        this.messageInput.placeholder = 'Escreva sua mensagem aqui...';
         this.messageInput.style.flex = '1';
         this.messageInput.style.padding = '12px 15px';
         this.messageInput.style.border = 'none';
         this.messageInput.style.outline = 'none';
-        this.messageInput.style.fontSize = '14px';
+        this.messageInput.style.fontSize = '16px'; // Increased font size to prevent zoom on mobile
+        
+        // Prevent zoom on mobile devices when focusing on the input
+        // This is done by preventing the default behavior of the focus event
+        this.messageInput.addEventListener('focus', function(e) {
+            // Add a slight delay to ensure the input is properly focused
+            setTimeout(function() {
+                // Prevent zoom by setting font size temporarily larger and then back
+                document.activeElement.style.fontSize = '16px';
+            }, 100);
+        });
         
         const sendButton = document.createElement('button');
         sendButton.className = 'chat-send-button';
@@ -233,6 +271,8 @@ class ChatBubbleWidget {
             }
         });
         
+        // No mobile-specific behavior
+        
         // Add welcome message with assistant avatar
         this.addMessage(this.options.welcomeMessage, 'bot');
     }
@@ -245,6 +285,13 @@ class ChatBubbleWidget {
             this.chatWindow.style.display = 'flex';
         } else {
             this.chatWindow.style.display = 'none';
+        }
+        
+        // Scroll to bottom when opening chat
+        if (this.chatWindow.style.display === 'flex') {
+            setTimeout(() => {
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            }, 100);
         }
     }
     
@@ -505,13 +552,25 @@ class ChatBubbleWidget {
     }
 }
 
-// Add CSS animation for loading indicator
+// Add CSS animation for loading indicator and basic responsive styles
 const style = document.createElement('style');
 style.textContent = `
     @keyframes pulse {
         0% { opacity: 0.3; }
         50% { opacity: 1; }
         100% { opacity: 0.3; }
+    }
+    
+    /* Basic responsive adjustments for very narrow screens */
+    @media (max-width: 350px) {
+        .chat-message {
+            font-size: 14px !important;
+            padding: 8px 12px !important;
+        }
+        
+        .chat-header {
+            padding: 10px !important;
+        }
     }
 `;
 document.head.appendChild(style);
