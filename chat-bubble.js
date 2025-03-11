@@ -28,18 +28,56 @@ class ChatBubbleWidget {
     }
     
     /**
-     * Generate a unique session ID or retrieve existing one from localStorage
+     * Generate a unique session ID or retrieve existing one from cookies
+     * Using cookies instead of localStorage for better persistence
      */
     getSessionId() {
-        const storedSessionId = localStorage.getItem('chat_bubble_session_id');
+        // Try to get session ID from cookies
+        const cookies = document.cookie.split(';');
+        let storedSessionId = null;
+        
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('chat_bubble_session_id=')) {
+                storedSessionId = cookie.substring('chat_bubble_session_id='.length);
+                break;
+            }
+        }
+        
+        // If found in cookies, return it
         if (storedSessionId) {
             return storedSessionId;
         }
         
-        // Generate new session ID (timestamp + random string)
+        // Check localStorage as fallback (for backward compatibility)
+        const localStorageSessionId = localStorage.getItem('chat_bubble_session_id');
+        if (localStorageSessionId) {
+            // If found in localStorage, also set it as a cookie for future use
+            this.setSessionCookie(localStorageSessionId);
+            return localStorageSessionId;
+        }
+        
+        // Generate new session ID (timestamp + random string) - same format as before
         const newSessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+        
+        // Store in both cookie and localStorage for backward compatibility
+        this.setSessionCookie(newSessionId);
         localStorage.setItem('chat_bubble_session_id', newSessionId);
+        
         return newSessionId;
+    }
+    
+    /**
+     * Helper method to set the session ID cookie with a long expiration
+     * @param {string} sessionId - The session ID to store
+     */
+    setSessionCookie(sessionId) {
+        // Set cookie to expire in 1 year
+        const expirationDate = new Date();
+        expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+        
+        // Set the cookie with path=/ to make it available across the site
+        document.cookie = `chat_bubble_session_id=${sessionId}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
     }
     
     /**
